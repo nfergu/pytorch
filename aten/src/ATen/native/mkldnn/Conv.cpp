@@ -282,6 +282,9 @@ static Tensor _mkldnn_convolution(
       input_t.scalar_type() == at::kFloat) {
     op_attr.set_fpmath_mode(dnnl_fpmath_mode_tf32);
   }
+  // Set user-managed scratchpad mode to avoid memory leaks with variable-sized tensors
+  // See: https://github.com/pytorch/pytorch/issues/150612
+  op_attr.set_scratchpad_mode(dnnl::scratchpad_mode::user);
   _mkldnn_convolution_out(
       input_t,
       weight_t,
@@ -469,6 +472,9 @@ Tensor mkldnn_convolution_pointwise_binary(
     if (mkldnn_conv_enabled_fpmath_mode_tf32() && input_t.scalar_type() ==at::kFloat){
       op_attr.set_fpmath_mode(dnnl_fpmath_mode_tf32);
     }
+    // Set user-managed scratchpad mode to avoid memory leaks with variable-sized tensors
+    // See: https://github.com/pytorch/pytorch/issues/150612
+    op_attr.set_scratchpad_mode(dnnl::scratchpad_mode::user);
 
     if (bias.defined()) {
       const ideep::tensor b = itensor_from_tensor(bias);
@@ -615,6 +621,9 @@ Tensor& mkldnn_convolution_pointwise_binary_(
         input_t.scalar_type() == at::kFloat) {
       op_attr.set_fpmath_mode(dnnl_fpmath_mode_tf32);
     }
+    // Set user-managed scratchpad mode to avoid memory leaks with variable-sized tensors
+    // See: https://github.com/pytorch/pytorch/issues/150612
+    op_attr.set_scratchpad_mode(dnnl::scratchpad_mode::user);
     _mkldnn_convolution_out(
         input_t,
         weight_t,
@@ -739,6 +748,9 @@ Tensor _mkldnn_convolution_transpose(
   if (mkldnn_conv_enabled_fpmath_mode_tf32() && input_t.scalar_type() ==at::kFloat){
     op_attr.set_fpmath_mode(dnnl_fpmath_mode_tf32);
   }
+  // Set user-managed scratchpad mode to avoid memory leaks with variable-sized tensors
+  // See: https://github.com/pytorch/pytorch/issues/150612
+  op_attr.set_scratchpad_mode(dnnl::scratchpad_mode::user);
 
   if (bias.defined()) {
     const ideep::tensor b = itensor_from_tensor(bias, /*from_const_data_ptr*/true);
@@ -833,6 +845,9 @@ Tensor mkldnn_convolution_backward_input(
       weight.scalar_type() == at::kFloat) {
     op_attr.set_fpmath_mode(dnnl_fpmath_mode_tf32);
   }
+  // Set user-managed scratchpad mode to avoid memory leaks with variable-sized tensors
+  // See: https://github.com/pytorch/pytorch/issues/150612
+  op_attr.set_scratchpad_mode(dnnl::scratchpad_mode::user);
   ideep::convolution_backward_data::compute_v2(
       grad_y,
       w,
@@ -892,6 +907,9 @@ std::tuple<Tensor, Tensor> mkldnn_convolution_backward_weights(
       input.scalar_type() == at::kFloat) {
     op_attr.set_fpmath_mode(dnnl_fpmath_mode_tf32);
   }
+  // Set user-managed scratchpad mode to avoid memory leaks with variable-sized tensors
+  // See: https://github.com/pytorch/pytorch/issues/150612
+  op_attr.set_scratchpad_mode(dnnl::scratchpad_mode::user);
   if (bias_defined) {
     ideep::convolution_backward_weights::compute_v2(
         x,
@@ -1049,6 +1067,9 @@ Tensor mkldnn_convolution_transpose_backward_input(
       weight.scalar_type() == at::kFloat) {
     op_attr.set_fpmath_mode(dnnl_fpmath_mode_tf32);
   }
+  // Set user-managed scratchpad mode to avoid memory leaks with variable-sized tensors
+  // See: https://github.com/pytorch/pytorch/issues/150612
+  op_attr.set_scratchpad_mode(dnnl::scratchpad_mode::user);
   ideep::convolution_transpose_backward_data::compute_v3(
       grad_y,
       w,
@@ -1095,6 +1116,9 @@ std::tuple<Tensor,Tensor> mkldnn_convolution_transpose_backward_weights(
       input.scalar_type() == at::kFloat) {
     op_attr.set_fpmath_mode(dnnl_fpmath_mode_tf32);
   }
+  // Set user-managed scratchpad mode to avoid memory leaks with variable-sized tensors
+  // See: https://github.com/pytorch/pytorch/issues/150612
+  op_attr.set_scratchpad_mode(dnnl::scratchpad_mode::user);
   if (bias_defined) {
     ideep::convolution_transpose_backward_weights::compute_v3(
         x,
