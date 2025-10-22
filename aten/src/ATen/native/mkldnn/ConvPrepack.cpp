@@ -25,6 +25,9 @@ c10::intrusive_ptr<mkldnn::ConvOpContext> createConvPrePackOpContext(
   auto it = fusion_attr_map.find(attr);
   TORCH_CHECK(it != fusion_attr_map.end(), "Fusion behavior undefined.");
   ideep::attr_t op_attr = it->second;
+  // Set user-managed scratchpad mode to avoid memory leaks with variable-sized tensors
+  // See: https://github.com/pytorch/pytorch/issues/150612
+  op_attr.set_scratchpad_mode(dnnl::scratchpad_mode::user);
 
   return mkldnn::MkldnnConvOpContext::create_context(
       std::move(weight),
