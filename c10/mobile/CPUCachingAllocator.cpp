@@ -35,7 +35,48 @@ void* CPUCachingAllocator::allocate(const size_t bytes) {
   if (it == available_map_.end() || it->second.empty()) {
     return allocate_and_cache(bytes);
   }
-  return it->second.pop_back_val();
+  void* ptr = it->second.pop_back_val();
+  // Update cached bytes count
+  total_cached_bytes_ -= bytes;
+  return ptr;
+}
+
+void CPUCachingAllocator::free_cached_memory_if_needed(const size_t bytes) {
+  // If adding this allocation would exceed the cache limit, free some memory
+  // We use a simple FIFO strategy: free cached blocks until we have enough space
+  if (total_cached_bytes_ + bytes <= max_cached_bytes_) {
+    return;
+  }
+  
+  // Free cached blocks starting with the largest sizes (most likely to be
+  // unused) until we have enough space
+  while (total_cached_bytes_ + bytes > max_cached_bytes_ && !available_map_.empty()) {
+    // Find the largest cached size
+    size_t max_size = 0;
+    for (const auto& it : available_map_) {
+      if (!it.second.empty() && it.first > max_size) {
+        max_size = it.first;
+      }
+    }
+    
+    if (max_size == 0) {
+      break;  // No more blocks to free
+    }
+    
+    // Free one block of the largest size
+    auto& blocks = available_map_[max_size];
+    if (!blocks.empty()) {
+      void* ptr = blocks.pop_back_val();
+      c10::free_cpu(ptr);
+      allocation_map_.erase(ptr);
+      total_cached_bytes_ -= max_size;
+    }
+    
+    // Remove the entry if it's now empty
+    if (blocks.empty()) {
+      available_map_.erase(max_size);
+    }
+  }
 }
 
 void CPUCachingAllocator::free(void* ptr) {
@@ -55,7 +96,20 @@ void CPUCachingAllocator::free(void* ptr) {
     return;
   }
   const size_t alloc_size = it->second;
+  
+  // Check if we need to free some cached memory before caching this block
+  free_cached_memory_if_needed(alloc_size);
+  
+  // If after freeing we still don't have space, just free this block directly
+  if (total_cached_bytes_ + alloc_size > max_cached_bytes_) {
+    c10::free_cpu(ptr);
+    allocation_map_.erase(ptr);
+    return;
+  }
+  
+  // Cache the block
   available_map_[alloc_size].push_back(ptr);
+  total_cached_bytes_ += alloc_size;
 }
 
 void CPUCachingAllocator::record_free(void* ptr) {
@@ -85,6 +139,7 @@ void CPUCachingAllocator::free_cached() {
     }
   }
   available_map_.clear();
+  total_cached_bytes_ = 0;
 }
 
 CPUCachingAllocator::~CPUCachingAllocator() {
