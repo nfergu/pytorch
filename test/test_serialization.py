@@ -4802,6 +4802,35 @@ class TestSerialization(TestCase, SerializationMixin):
 
             assert x.dtype == y.dtype
 
+    def test_save_no_circular_reference(self):
+        """Test that torch.save doesn't create circular references (issue #149846)."""
+        # Enable debug mode to capture all garbage
+        gc.set_debug(gc.DEBUG_SAVEALL)
+        initial_garbage = len(gc.garbage)
+        gc.garbage.clear()
+
+        # Run torch.save several times
+        for _ in range(5):
+            with tempfile.NamedTemporaryFile() as f:
+                tensor = torch.randn(10, 10)
+                torch.save(tensor, f.name)
+                del tensor
+
+        # Collect garbage
+        gc.collect()
+        final_garbage = len(gc.garbage)
+
+        # Clean up
+        gc.garbage.clear()
+        gc.set_debug(0)
+
+        # We expect very few or no uncollectable objects
+        # Before the fix, this would create many circular references
+        # Allow some tolerance for other objects in the system
+        self.assertLess(final_garbage, 100,
+                       f"Too many circular references detected: {final_garbage}. "
+                       "This may indicate the memory leak is still present.")
+
     def run(self, *args, **kwargs):
         with serialization_method(use_zip=True):
             return super().run(*args, **kwargs)
