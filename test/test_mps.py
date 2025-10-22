@@ -12065,6 +12065,33 @@ class TestRNNMPS(TestCaseMPS):
             for test_options in self.LSTM_TEST_CASES:
                 self._lstm_helper(num_layers=num_layers, dtype=dtype, device=device, backward=True, **test_options)
 
+    def test_lstm_repeated_iterations(self, device="mps", dtype=torch.float32):
+        """Test that running LSTM multiple times doesn't leak memory.
+        
+        This test specifically verifies the fix for issue #145374 where NSMutableArray
+        objects were leaking memory during repeated LSTM iterations in the MPS backend.
+        """
+        input_size = 128
+        hidden_size = 128
+        batch_size = 8
+        sequence_length = 10
+        num_iterations = 50
+        
+        lstm = nn.LSTM(input_size, hidden_size, num_layers=2, batch_first=True).to(device)
+        
+        x = torch.randn(batch_size, sequence_length, input_size, device=device, dtype=dtype)
+        hidden = (
+            torch.zeros(2, batch_size, hidden_size, device=device, dtype=dtype),
+            torch.zeros(2, batch_size, hidden_size, device=device, dtype=dtype),
+        )
+        
+        # Run multiple iterations to check for memory leaks
+        for i in range(num_iterations):
+            with torch.no_grad():
+                output, hidden = lstm(x, hidden)
+        
+        # If memory leak checking is enabled, any leak would be caught by MpsMemoryLeakCheck
+
     def test_RNN_cell_no_broadcasting(self):
         def test(cell_module, input, hx, input_size, hidden_size):
             cell = cell_module(input_size, hidden_size, device='mps')
