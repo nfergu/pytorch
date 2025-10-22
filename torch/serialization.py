@@ -1133,11 +1133,8 @@ def _legacy_save(obj, f, pickle_module, pickle_protocol) -> None:
     pickle_module.dump(PROTOCOL_VERSION, f, protocol=pickle_protocol)
     pickle_module.dump(sys_info, f, protocol=pickle_protocol)
 
-    class PyTorchLegacyPickler(pickle_module.Pickler):
-        def persistent_id(self, obj):
-            return persistent_id(obj)
-
-    pickler = PyTorchLegacyPickler(f, protocol=pickle_protocol)
+    pickler = pickle_module.Pickler(f, protocol=pickle_protocol)
+    pickler.persistent_id = persistent_id
     pickler.dump(obj)
 
     serialized_storage_keys = sorted(serialized_storages.keys())
@@ -1214,12 +1211,8 @@ def _save(
 
     # Write the pickle data for `obj`
     data_buf = io.BytesIO()
-
-    class PyTorchPickler(pickle_module.Pickler):  # type: ignore[name-defined]
-        def persistent_id(self, obj):
-            return persistent_id(obj)
-
-    pickler = PyTorchPickler(data_buf, protocol=pickle_protocol)
+    pickler = pickle_module.Pickler(data_buf, protocol=pickle_protocol)
+    pickler.persistent_id = persistent_id
     pickler.dump(obj)
     data_value = data_buf.getvalue()
     zip_file.write_record("data.pkl", data_value, len(data_value))
