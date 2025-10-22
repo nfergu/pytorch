@@ -290,45 +290,47 @@ static at::Tensor& copy_kernel_mps(at::Tensor& dst_, const at::Tensor& src_, boo
 }
 
 at::Tensor& mps_copy_(at::Tensor& dst, const at::Tensor& src, bool non_blocking) {
-  TORCH_CHECK(dst.defined(), "dst is undefined");
-  TORCH_CHECK(src.defined(), "src is undefined");
+  @autoreleasepool {
+    TORCH_CHECK(dst.defined(), "dst is undefined");
+    TORCH_CHECK(src.defined(), "src is undefined");
 
-  bool needs_broadcasting = false;
+    bool needs_broadcasting = false;
 
-  if (src.numel() == 0 || dst.is_same(src)) {
-    return dst;
-  }
-  if (dst.numel() == 0) {
-    dst.resize_as_(src);
-  }
+    if (src.numel() == 0 || dst.is_same(src)) {
+      return dst;
+    }
+    if (dst.numel() == 0) {
+      dst.resize_as_(src);
+    }
 
-  TORCH_CHECK(
-      dst.dim() >= src.dim(), "Destination ", dst.sym_sizes(), " doesn't match the broadcast shape ", src.sym_sizes());
-  if (dst.dim() > src.dim()) {
-    needs_broadcasting = true;
-  } else {
-    const IntArrayRef src_sizes = src.sizes();
-    const IntArrayRef dst_sizes = dst.sizes();
-    for (const auto j : c10::irange(src.dim())) {
-      if (src_sizes[j] == 1 && dst_sizes[j] != 1) {
-        needs_broadcasting = true;
-        break;
+    TORCH_CHECK(
+        dst.dim() >= src.dim(), "Destination ", dst.sym_sizes(), " doesn't match the broadcast shape ", src.sym_sizes());
+    if (dst.dim() > src.dim()) {
+      needs_broadcasting = true;
+    } else {
+      const IntArrayRef src_sizes = src.sizes();
+      const IntArrayRef dst_sizes = dst.sizes();
+      for (const auto j : c10::irange(src.dim())) {
+        if (src_sizes[j] == 1 && dst_sizes[j] != 1) {
+          needs_broadcasting = true;
+          break;
+        }
       }
     }
-  }
 
-  if (src.device().type() == at::kMPS && dst.device().type() == at::kCPU) {
-    return copy_from_mps_(dst, needs_broadcasting ? src.expand_as(dst) : src, non_blocking);
-  }
-  if (src.device().type() == at::kCPU && dst.device().type() == at::kMPS) {
-    return copy_to_mps_(dst, needs_broadcasting ? src.expand_as(dst) : src, non_blocking);
-  }
+    if (src.device().type() == at::kMPS && dst.device().type() == at::kCPU) {
+      return copy_from_mps_(dst, needs_broadcasting ? src.expand_as(dst) : src, non_blocking);
+    }
+    if (src.device().type() == at::kCPU && dst.device().type() == at::kMPS) {
+      return copy_to_mps_(dst, needs_broadcasting ? src.expand_as(dst) : src, non_blocking);
+    }
 
-  if (src.device().type() == at::kMPS && dst.device().type() == at::kMPS) {
-    return copy_kernel_mps(dst, needs_broadcasting ? src.expand_as(dst) : src, non_blocking);
+    if (src.device().type() == at::kMPS && dst.device().type() == at::kMPS) {
+      return copy_kernel_mps(dst, needs_broadcasting ? src.expand_as(dst) : src, non_blocking);
+    }
+    TORCH_INTERNAL_ASSERT(src.device().type() == DeviceType::MPS, "mps_copy_ is implemented only for *->MPS; MPS->*");
+    return dst;
   }
-  TORCH_INTERNAL_ASSERT(src.device().type() == DeviceType::MPS, "mps_copy_ is implemented only for *->MPS; MPS->*");
-  return dst;
 }
 } // namespace mps
 

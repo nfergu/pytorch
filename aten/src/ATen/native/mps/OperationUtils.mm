@@ -274,11 +274,13 @@ std::string scalarToMetalTypeString(const c10::ScalarType& scalar_type) {
 }
 
 static NSArray<NSNumber*>* getTensorAxes(int64_t ndim) {
-  auto axes = [NSMutableArray<NSNumber*> arrayWithCapacity:ndim];
-  for (const auto i : c10::irange(ndim)) {
-    axes[i] = [NSNumber numberWithInteger:i];
+  @autoreleasepool {
+    auto axes = [NSMutableArray<NSNumber*> arrayWithCapacity:ndim];
+    for (const auto i : c10::irange(ndim)) {
+      axes[i] = [NSNumber numberWithInteger:i];
+    }
+    return [[axes retain] autorelease];
   }
-  return axes;
 }
 
 NSArray<NSNumber*>* getTensorAxes(const TensorBase& t) {
@@ -291,14 +293,16 @@ static NSArray<NSNumber*>* getTensorAxes(const IntArrayRef& sizes) {
 
 NSArray<NSNumber*>* getTensorAxes(const IntArrayRef& sizes, OptionalIntArrayRef dim) {
   if (dim.has_value() && !dim.value().empty()) {
-    IntArrayRef dimValues = dim.value();
-    int ndim = dimValues.size();
-    auto axes = [NSMutableArray<NSNumber*> arrayWithCapacity:ndim];
-    for (const auto i : c10::irange(ndim)) {
-      axes[i] = [NSNumber numberWithInteger:dimValues[i]];
-    }
+    @autoreleasepool {
+      IntArrayRef dimValues = dim.value();
+      int ndim = dimValues.size();
+      auto axes = [NSMutableArray<NSNumber*> arrayWithCapacity:ndim];
+      for (const auto i : c10::irange(ndim)) {
+        axes[i] = [NSNumber numberWithInteger:dimValues[i]];
+      }
 
-    return axes;
+      return [[axes retain] autorelease];
+    }
   }
 
   return getTensorAxes(sizes);
@@ -359,25 +363,27 @@ MPSShape* getMPSShape(const TensorBase& t, c10::MemoryFormat memory_format) {
 }
 
 MPSShape* getMPSShape(IntArrayRef sizes, c10::MemoryFormat memory_format) {
-  if (memory_format == MemoryFormat::ChannelsLast) {
-    TORCH_INTERNAL_ASSERT(sizes.size() == 4, "ChannelsLast memory format must have 4 dimensions!");
-    const NSUInteger N = sizes[0];
-    const NSUInteger C = sizes[1];
-    const NSUInteger H = sizes[2];
-    const NSUInteger W = sizes[3];
-    return @[ @(N), @(H), @(W), @(C) ];
-  }
-  const int sz = sizes.size();
-  const int sz_ = (sz > 0) ? sz : 1;
+  @autoreleasepool {
+    if (memory_format == MemoryFormat::ChannelsLast) {
+      TORCH_INTERNAL_ASSERT(sizes.size() == 4, "ChannelsLast memory format must have 4 dimensions!");
+      const NSUInteger N = sizes[0];
+      const NSUInteger C = sizes[1];
+      const NSUInteger H = sizes[2];
+      const NSUInteger W = sizes[3];
+      return [[@[ @(N), @(H), @(W), @(C) ] retain] autorelease];
+    }
+    const int sz = sizes.size();
+    const int sz_ = (sz > 0) ? sz : 1;
 
-  std::vector<NSNumber*> numbers(sz_);
+    std::vector<NSNumber*> numbers(sz_);
 
-  for (int i = 0; i < sz_; i++) {
-    NSInteger sz_i = (i < sz) ? sizes[i] : 1;
-    NSNumber* number = [NSNumber numberWithInteger:sz_i];
-    numbers[i] = number;
+    for (int i = 0; i < sz_; i++) {
+      NSInteger sz_i = (i < sz) ? sizes[i] : 1;
+      NSNumber* number = [NSNumber numberWithInteger:sz_i];
+      numbers[i] = number;
+    }
+    return [[[NSArray arrayWithObjects:numbers.data() count:numbers.size()] retain] autorelease];
   }
-  return [NSArray arrayWithObjects:numbers.data() count:numbers.size()];
 }
 
 static std::vector<int64_t> getSortedStrides(const IntArrayRef& s) {
