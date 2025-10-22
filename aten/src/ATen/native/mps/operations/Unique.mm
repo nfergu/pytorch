@@ -119,7 +119,7 @@ static std::array<MPSGraphTensor*, 4> buildUniqueGraph(const Tensor& self,
 
   // If comparing tensors, not scalars, check if entire tensor matches previous element using reductionOr over tensor
   if (dimOpt.has_value() && [shape count] != 1) {
-    NSMutableArray* axes = [[NSMutableArray alloc] initWithCapacity:[shape count] - 1];
+    NSMutableArray* axes = [[[NSMutableArray alloc] initWithCapacity:[shape count] - 1] autorelease];
     for (const auto axis : c10::irange([shape count])) {
       if (static_cast<decltype(dim)>(axis) != dim) {
         [axes addObject:[NSNumber numberWithUnsignedInteger:axis]];
@@ -127,7 +127,6 @@ static std::array<MPSGraphTensor*, 4> buildUniqueGraph(const Tensor& self,
     }
     mask = [graph reductionOrWithTensor:mask axes:axes name:nil];
     mask = [graph squeezeTensor:mask axes:axes name:nil];
-    [axes release];
   }
 
   MPSGraphTensor* scannedIndices = [graph cumulativeSumWithTensor:mask axis:0 name:nil];

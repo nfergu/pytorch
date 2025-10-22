@@ -94,7 +94,7 @@ TORCH_IMPL_FUNC(gather_out_mps)
       if (workaroundSingleDim and !isMacos15_2) {
         const int64_t dims = self_arg.sizes().size();
         int64_t size = self_arg.squeeze().sizes()[0];
-        auto shape = [[NSMutableArray alloc] initWithCapacity:dims];
+        auto shape = [[[NSMutableArray alloc] initWithCapacity:dims] autorelease];
         for (int i = 0; i < dims; ++i) {
           [shape addObject:[NSNumber numberWithInt:size]];
         }
