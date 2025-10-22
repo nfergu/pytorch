@@ -97,13 +97,9 @@ class C10_API CPUCachingAllocator {
   virtual void free(void* ptr);
   // Set the maximum size of cached memory. When the cache exceeds this size,
   // the oldest cached blocks are freed to the OS.
-  void set_max_cached_bytes(size_t max_bytes) {
-    max_cached_bytes_ = max_bytes;
-  }
+  void set_max_cached_bytes(size_t max_bytes);
   // Get the current size of cached memory
-  size_t get_cached_bytes() const {
-    return total_cached_bytes_;
-  }
+  size_t get_cached_bytes() const;
 };
 
 CPUCachingAllocator* GetDefaultCPUCachingAllocator();

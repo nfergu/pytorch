@@ -146,6 +146,16 @@ CPUCachingAllocator::~CPUCachingAllocator() {
   free_cached();
 }
 
+void CPUCachingAllocator::set_max_cached_bytes(size_t max_bytes) {
+  std::lock_guard<std::mutex> guard(mutex_);
+  max_cached_bytes_ = max_bytes;
+}
+
+size_t CPUCachingAllocator::get_cached_bytes() const {
+  std::lock_guard<std::mutex> guard(mutex_);
+  return total_cached_bytes_;
+}
+
 CPUCachingAllocator* GetThreadLocalCachingAllocator() {
   return caching_allocator_ptr;
 }
