@@ -141,7 +141,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor> _lstm_mps(const Tenso
           [[NSMutableArray alloc] initWithCapacity:params.size()];
       NSMutableArray<MPSGraphTensor*>* kernelBiasList = [[NSMutableArray alloc] initWithCapacity:params.size()];
       NSMutableArray<MPSGraphTensor*>* recurrentBiasList = [[NSMutableArray alloc] initWithCapacity:params.size()];
-      NSMutableArray<MPSGraphTensor*>* layersOutputsList = [[NSMutableArray alloc] initWithCapacity:num_layers];
+      NSMutableArray<MPSGraphTensor*>* layersOutputsList = [[[NSMutableArray alloc] initWithCapacity:num_layers] autorelease];
 
       for (const auto i : c10::irange(total_layers)) {
         [kernelWeightsList
@@ -176,10 +176,10 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor> _lstm_mps(const Tenso
 
       MPSGraphTensor* inputTensor_ = inputTensor;
       NSArray<MPSGraphTensor*>* outputs = nil;
-      NSMutableArray<MPSGraphTensor*>* outputStateArray = [[NSMutableArray alloc] initWithCapacity:num_layers];
-      NSMutableArray<MPSGraphTensor*>* outputCellStateArray = [[NSMutableArray alloc] initWithCapacity:num_layers];
-      NSMutableArray<MPSGraphTensor*>* outputZStateArray = [[NSMutableArray alloc] initWithCapacity:num_layers];
-      NSMutableArray<MPSGraphTensor*>* outputCellStateFwdArray = [[NSMutableArray alloc] initWithCapacity:num_layers];
+      NSMutableArray<MPSGraphTensor*>* outputStateArray = [[[NSMutableArray alloc] initWithCapacity:num_layers] autorelease];
+      NSMutableArray<MPSGraphTensor*>* outputCellStateArray = [[[NSMutableArray alloc] initWithCapacity:num_layers] autorelease];
+      NSMutableArray<MPSGraphTensor*>* outputZStateArray = [[[NSMutableArray alloc] initWithCapacity:num_layers] autorelease];
+      NSMutableArray<MPSGraphTensor*>* outputCellStateFwdArray = [[[NSMutableArray alloc] initWithCapacity:num_layers] autorelease];
       for (int i = 0; i < num_layers; i++) {
         auto tensorsData = getMPSTensorsFromPytorchTensors(mpsGraph,
                                                            stateTensor,
@@ -480,8 +480,8 @@ std::tuple<Tensor, std::vector<Tensor>, std::vector<Tensor>> lstm_mps_backward(c
       NSMutableArray<MPSGraphTensor*>* gradRecWeightsArray = [[NSMutableArray alloc] initWithCapacity:num_layers];
       NSMutableArray<MPSGraphTensor*>* gradWeightsArray = [[NSMutableArray alloc] initWithCapacity:num_layers];
       NSMutableArray<MPSGraphTensor*>* gradBiasArray = [[NSMutableArray alloc] initWithCapacity:num_layers];
-      NSMutableArray<MPSGraphTensor*>* gradStateArray = [[NSMutableArray alloc] initWithCapacity:num_layers];
-      NSMutableArray<MPSGraphTensor*>* gradCellStateArray = [[NSMutableArray alloc] initWithCapacity:num_layers];
+      NSMutableArray<MPSGraphTensor*>* gradStateArray = [[[NSMutableArray alloc] initWithCapacity:num_layers] autorelease];
+      NSMutableArray<MPSGraphTensor*>* gradCellStateArray = [[[NSMutableArray alloc] initWithCapacity:num_layers] autorelease];
 
       for (int i = num_layers - 1; i >= 0; i--) {
         MPSGraphTensor* zState = [mpsGraph sliceTensor:zStateTensor dimension:0 start:i length:1 name:nil];
