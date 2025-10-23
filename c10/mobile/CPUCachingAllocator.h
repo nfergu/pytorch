@@ -52,6 +52,7 @@ class C10_API CPUCachingAllocator {
  private:
   inline void* allocate_and_cache(const size_t bytes);
   void free_cached();
+  void free_cached_memory_if_needed(const size_t bytes);
 
  protected:
   // Invariants.
@@ -75,6 +76,13 @@ class C10_API CPUCachingAllocator {
   // Since allocation_map, which is a global instance, is mutated/read via
   // all public APIs we need a global mutex.
   static std::mutex mutex_;
+  
+  // Track the total size of cached memory
+  size_t total_cached_bytes_{0};
+  // Maximum size of cached memory (default: 10MB)
+  // This prevents unbounded cache growth when large tensors are freed
+  // but never reused due to exact size matching.
+  size_t max_cached_bytes_{10 * 1024 * 1024};
 
  public:
   static void record_free(void* ptr);
@@ -87,6 +95,11 @@ class C10_API CPUCachingAllocator {
   // an earlier call to allocate. If so cache the allocation.
   // Otherwise free.
   virtual void free(void* ptr);
+  // Set the maximum size of cached memory. When the cache exceeds this size,
+  // the oldest cached blocks are freed to the OS.
+  void set_max_cached_bytes(size_t max_bytes);
+  // Get the current size of cached memory
+  size_t get_cached_bytes() const;
 };
 
 CPUCachingAllocator* GetDefaultCPUCachingAllocator();
